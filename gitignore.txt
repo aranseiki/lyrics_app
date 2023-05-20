@@ -105,7 +105,7 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+*venv*
 env/
 venv/
 ENV/
@@ -136,7 +136,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Próprio do projeto
+# Pr prio do projeto
 webdrivers/
 ./webdrivers
 
