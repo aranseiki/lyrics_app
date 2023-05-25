@@ -11,13 +11,14 @@ token_lyrics_app = ler_variavel_ambiente(
 )
 header = {'Authorization': f'Bearer {token_lyrics_app}'}
 
+
 def search_lyrics(artist, music,):
 
     url_base = 'https://api.genius.com/'
-    endpoint = f'search?q={artist.upper()}'
-
+    search_artist_endpoint = f'search?q={artist.upper()}'
+    url_search_artist = ''.join((url_base, search_artist_endpoint))
     data1 = loads(
-        get(url=''.join((url_base, endpoint)), headers=header).content
+        get(url=url_search_artist, headers=header).content
     )
 
     artist_id = ''
@@ -35,6 +36,11 @@ def search_lyrics(artist, music,):
         except:
             ...
 
+    if artist_id == '':
+        raise SystemError(
+            'Não foi possível localizar o artista da música solicitada.'
+        )
+
     page_number = 1
     next_page = None
     validation_title = False
@@ -42,9 +48,11 @@ def search_lyrics(artist, music,):
     while not next_page == 'null':
         print('next_page:', page_number)
         endpoint = f'artists/{artist_id}/songs?page={page_number}'
+        title_song_endpoint = ''.join((url_base, endpoint, '/songs'))
         data2 = loads(
             get(
-                url=''.join((url_base, endpoint, '/songs')), headers=header
+                url=title_song_endpoint,
+                headers=header,
             ).content
         )
         next_page = data2['response']['next_page']
@@ -77,7 +85,9 @@ def search_lyrics(artist, music,):
             break
 
     if (next_page == 'null') and (title_song == ''):
-        raise SystemError('Não foi possível localizar a música solicitada.')
+        raise SystemError(
+            'Não foi possível localizar a música solicitada.'
+        )
 
     cls()
 
