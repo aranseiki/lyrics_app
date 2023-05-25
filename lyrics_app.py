@@ -1,22 +1,19 @@
-from pprint import pprint
-from requests import get
 from json import loads
-from py_rpautom.python_utils import ler_variavel_ambiente
+from pprint import pprint
 
-def cls():
-    import os
-    os.system('cls')
+from py_rpautom.python_utils import cls, ler_variavel_ambiente
+from requests import get
 
 cls()
 token_lyrics_app = ler_variavel_ambiente(
     nome_variavel='token_lyrics_app',
     variavel_sistema=True,
 )
-header = {
-    'Authorization': f'Bearer {token_lyrics_app}'
-}
+header = {'Authorization': f'Bearer {token_lyrics_app}'}
+artist = 'COLBIE CAILLAT'
+music = 'BEFORE I LET YOU GO'
 url_base = 'https://api.genius.com/'
-endpoint = 'search?q=colbie%20caillat'
+endpoint = f'search?q={artist}'
 
 data1 = loads(get(url=''.join((url_base, endpoint)), headers=header).content)
 
@@ -24,28 +21,27 @@ artist_id = ''
 for response in data1['response']['hits']:
     try:
         infobox1 = {
-            'artist_name' : response['result']['primary_artist']['name'],
-            'artist_id' : response['result']['primary_artist']['id'],
-            'full_title' : response['result']['full_title']
+            'artist_name': response['result']['primary_artist']['name'],
+            'artist_id': response['result']['primary_artist']['id'],
+            'full_title': response['result']['full_title'],
         }
-        if infobox1['artist_name'].upper() == 'COLBIE CAILLAT':
+        if infobox1['artist_name'].upper() == artist:
             artist_id = infobox1['artist_id']
             break
     except:
         ...
 
 endpoint = f'artists/{artist_id}'
-data2 = loads(get(url=''.join((url_base, endpoint, '/songs')), headers=header).content)
+data2 = loads(
+    get(url=''.join((url_base, endpoint, '/songs')), headers=header).content
+)
 
 title_song = ''
 for response in data2['response']['songs']:
     try:
-        infobox2 = {
-            'title' : response['title'],
-            'url': ''
-        }
+        infobox2 = {'title': response['title'], 'url': ''}
 
-        if infobox2['title'].upper() == 'BEFORE I LET YOU GO':
+        if infobox2['title'].upper() == music:
             title_song = infobox2['title']
             infobox2['url'] = response['url']
             break
@@ -74,7 +70,7 @@ skiping_list = [
     b'"p',
     b'"',
     b"'",
-    b"desktop_",
+    b'desktop_',
     b'"root',
     b'"],',
     b'"},{',
@@ -96,10 +92,7 @@ skiping_list = [
     b'n<a href=',
 ]
 
-infobox3 = {
-    'artist_name' : infobox1['artist_name'],
-    'title' : infobox2['title']
-}
+infobox3 = {'artist_name': infobox1['artist_name'], 'title': infobox2['title']}
 
 lyrics_content = []
 for item in b''.join(html_content.content.splitlines()).split(b'\\'):
