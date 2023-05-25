@@ -1,7 +1,7 @@
 from json import loads
 from pprint import pprint
 
-from py_rpautom.python_utils import cls, ler_variavel_ambiente
+from py_rpautom.python_utils import cls, ler_variavel_ambiente, remover_acentos
 from requests import get
 
 cls()
@@ -10,10 +10,12 @@ token_lyrics_app = ler_variavel_ambiente(
     variavel_sistema=True,
 )
 header = {'Authorization': f'Bearer {token_lyrics_app}'}
-artist = 'COLBIE CAILLAT'
-music = 'BEFORE I LET YOU GO'
+
+artist = 'Vanessa Carlton'
+music = 'Pretty Baby'
+
 url_base = 'https://api.genius.com/'
-endpoint = f'search?q={artist}'
+endpoint = f'search?q={artist.upper()}'
 
 data1 = loads(get(url=''.join((url_base, endpoint)), headers=header).content)
 
@@ -25,29 +27,59 @@ for response in data1['response']['hits']:
             'artist_id': response['result']['primary_artist']['id'],
             'full_title': response['result']['full_title'],
         }
-        if infobox1['artist_name'].upper() == artist:
+
+        if infobox1['artist_name'].upper() == artist.upper():
             artist_id = infobox1['artist_id']
             break
     except:
         ...
 
-endpoint = f'artists/{artist_id}'
-data2 = loads(
-    get(url=''.join((url_base, endpoint, '/songs')), headers=header).content
-)
-
+page_number = 1
+# artists/8568/songs?page=30
+next_page = None
+validation_title = False
 title_song = ''
-for response in data2['response']['songs']:
-    try:
-        infobox2 = {'title': response['title'], 'url': ''}
+while not next_page == 'null':
+    print('next_page:', page_number)
+    endpoint = f'artists/{artist_id}/songs?page={page_number}'
+    data2 = loads(
+        get(
+            url=''.join((url_base, endpoint, '/songs')), headers=header
+        ).content
+    )
+    next_page = data2['response']['next_page']
 
-        if infobox2['title'].upper() == music:
-            title_song = infobox2['title']
-            infobox2['url'] = response['url']
-            break
+    if next_page is None:
+        next_page = 'null'
+        continue
 
-    except:
-        ...
+    page_number = next_page
+
+    for response in data2['response']['songs']:
+        try:
+            infobox2 = {
+                'title': response['title'],
+                'url': ''
+            }
+
+            if (
+                remover_acentos(infobox2['title'].upper())
+                == remover_acentos(music).upper()
+            ):
+                title_song = infobox2['title']
+                infobox2['url'] = response['url']
+                validation_title = True
+                break
+
+        except:
+            ...
+    if validation_title is True:
+        break
+
+if (next_page == 'null') and (title_song == ''):
+    raise SystemError(
+        'Não foi possível localizar a música solicitada.'
+    )
 
 html_content = get(infobox2['url'])
 
@@ -92,7 +124,10 @@ skiping_list = [
     b'n<a href=',
 ]
 
-infobox3 = {'artist_name': infobox1['artist_name'], 'title': infobox2['title']}
+infobox3 = {
+    'artist_name': infobox1['artist_name'],
+    'title': infobox2['title']
+}
 
 lyrics_content = []
 for item in b''.join(html_content.content.splitlines()).split(b'\\'):
@@ -109,6 +144,5 @@ for item in b''.join(html_content.content.splitlines()).split(b'\\'):
 
 print(infobox3['artist_name'])
 print(infobox3['title'], '\n')
-[print(verse.decode(encoding='utf8')) for verse in lyrics_content]
 
-# pprint(loads(get(url=''.join((url_base, endpoint)), headers=header).content))
+[print(verse.decode(encoding='utf8')) for verse in lyrics_content]
