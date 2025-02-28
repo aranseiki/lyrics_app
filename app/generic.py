@@ -1,6 +1,7 @@
 from json import loads
 from pprint import pprint
 
+from bs4 import BeautifulSoup
 from py_rpautom.python_utils import (
     cls,
     ler_variavel_ambiente,
@@ -47,8 +48,8 @@ def get_api_auth_bearer(
 def get_artist_base_data(
     artist: str,
     header: dict[str, str],
+    url_base:str = 'https://api.genius.com/',
 ) -> tuple[str, dict[str, str]]:
-    url_base = 'https://api.genius.com/'
     search_artist_endpoint = f'search?q={artist.upper()}'
     url_search_artist = ''.join((url_base, search_artist_endpoint))
     base_data = loads(
@@ -196,62 +197,29 @@ def get_song_information(
 
 def extract_lyrics_content(
     song_details: dict[str, str],
-) -> list[bytes]:
-    html_content = get(song_details['url'])
+) -> list[str]:
+    headers = {
+        "User-Agent": (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/119.0.0.0 Safari/537.36'
+        )
+    }
+    url = song_details['url']
 
-    validation_show = False
-    validation_number = 0
-    skiping_list = [
-        b'",{',
-        b'"tag',
-        b'":',
-        b'"br',
-        b'"},',
-        b'/a><br>',
-        b'',
-        b'"html',
-        b'"body',
-        b'"data',
-        b'":{',
-        b'"name',
-        b'"inread-ad',
-        b'"p',
-        b'"',
-        b"'",
-        b'desktop_',
-        b'"root',
-        b'"],',
-        b'"},{',
-        b'"a',
-        b'"href',
-        b'"attributes',
-        b'"id',
-        b'"pending',
-        b'"editorialState',
-        b'"unreviewed',
-        b'",',
-        b'"classification',
-        b'":[',
-        b'":[{',
-        b'"children',
-        b'" data-id=',
-        b'"17777149',
-        b'n<a href=',
-        b'n<a href=',
-    ]
+    response = get(url, headers = headers)
+    response.raise_for_status()
+    html_content = BeautifulSoup(response.text, 'html.parser')
+    lyrics_divs = html_content.find_all('div', {'data-lyrics-container': 'true'})
 
-    lyrics_content = []
-    for item in b''.join(html_content.content.splitlines()).split(b'\\'):
-        if item.__contains__(b'"body') and validation_number < 1:
-            validation_number = validation_number + 1
-            validation_show = True
+    lyrics_content: list[str] = []
+    for index_div in range(len(lyrics_divs)):
+        lyrics_content = [
+            str(item.text).strip()
+            for item in lyrics_divs[index_div].children
+                if (not str(item.text) == '')
+        ]
 
-        if item.__contains__(b'lyricsPlaceholderReason'):
-            validation_show = False
-
-        if validation_show is True and item not in skiping_list:
-            lyrics_content.append(item)
-            ...
     return lyrics_content
 
 
@@ -297,7 +265,7 @@ def search_lyrics(artist: str, music: str,):
 def show_lyrics_details(
     artist_data_information: dict[str, str],
     song_details: dict[str, str],
-    lyrics_content: list[bytes],
+    lyrics_content: list[str],
 ):
     song_metadata = {
         'artist_name': artist_data_information['artist_name'],
@@ -306,5 +274,5 @@ def show_lyrics_details(
 
     print(song_metadata['artist_name'])
     print(song_metadata['title'], '\n')
-
-    [print(verse.decode(encoding='utf8')) for verse in lyrics_content]
+    [print(item) for item in lyrics_content]
+    print('\n')
