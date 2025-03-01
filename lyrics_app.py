@@ -6,6 +6,5 @@ cls()
 
 artist = 'James Blunt'
 song = '1973'
-song = 'You are beautiful'
 
 search_lyrics(artist, song)
