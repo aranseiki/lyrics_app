@@ -5,6 +5,6 @@ from py_rpautom.python_utils import cls
 cls()
 
 artist = 'James Blunt'
-music = '1973'
+song = '1973'
 
-search_lyrics(artist, music)
+search_lyrics(artist, song)

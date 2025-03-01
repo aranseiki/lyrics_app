@@ -133,7 +133,7 @@ def get_song_content(
 
 
 def get_song_details(
-    music: str,
+    song: str,
     url_base: str,
     artist_id: int,
     header_api: dict[str, str],
@@ -159,7 +159,7 @@ def get_song_details(
             title_song,
             song_information
         ) = get_song_information(
-            music,
+            song,
             title_song_content,
         )
 
@@ -170,7 +170,7 @@ def get_song_details(
 
 
 def get_song_information(
-    music: str,
+    song: str,
     title_song_content: dict[str, str],
 ):
     for song_data in title_song_content['response']['songs']:
@@ -182,7 +182,7 @@ def get_song_information(
 
             if (
                 remover_acentos(song_information['title'].upper())
-                == remover_acentos(music).upper()
+                == remover_acentos(song).upper()
             ):
                 title_song = song_information['title']
                 song_information['url'] = song_data['url']
@@ -210,7 +210,10 @@ def extract_lyrics_content(
     response = get(url, headers = headers)
     response.raise_for_status()
     html_content = BeautifulSoup(response.text, 'html.parser')
-    lyrics_divs = html_content.find_all('div', {'data-lyrics-container': 'true'})
+    lyrics_divs = html_content.find_all(
+        'div',
+        {'data-lyrics-container': 'true'}
+    )
 
     lyrics_content: list[str] = []
     for index_div in range(len(lyrics_divs)):
@@ -223,7 +226,7 @@ def extract_lyrics_content(
     return lyrics_content
 
 
-def search_lyrics(artist: str, music: str,):
+def search_lyrics(artist: str, song: str,):
     header_api = get_api_auth_bearer()
 
     url_base, base_data = get_artist_base_data(artist, header_api)
@@ -240,7 +243,7 @@ def search_lyrics(artist: str, music: str,):
         )
 
     next_page, title_song, song_details = get_song_details(
-        music,
+        song,
         url_base,
         artist_id,
         header_api,
