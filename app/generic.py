@@ -1,7 +1,5 @@
-from json import loads
 from pprint import pprint
 
-from bs4 import BeautifulSoup
 from py_rpautom.python_utils import (
     cls,
     ler_variavel_ambiente,
@@ -21,6 +19,14 @@ def api_error_validation(
     )
 
 
+def clean_data(data: str) -> str:
+    import re
+
+    pattern = re.compile(r"[^\w\s\s]")
+    pattern = re.compile(r'[^\w]')
+    data_cleaned = pattern.sub('', data)
+    return data_cleaned
+
 def get_api_auth_bearer(
     env_var_name: str = 'LYRICS_APP_CLIENT_BEARER',
 ) -> dict[str, str]:
@@ -34,12 +40,49 @@ def get_api_auth_bearer(
     return header
 
 
-def get_artist_base_data(
+def get_artist_by_song_base_data(
+    song_data_list: str,
+    artist: str,
+    song: str,
+    data_information: dict[str, str],
+) -> tuple[str, dict[str, str]]:
+    for song_data in song_data_list:
+        song_data_artist_name = clean_data(
+            song_data['result']['primary_artist']['name']
+        )
+        song_data_song_tile = clean_data(
+            song_data['result']['title']
+        )
+        song_data_lyrics_state = clean_data(
+            song_data['result']['lyrics_state']
+        )
+        artist = clean_data(artist)
+        song = clean_data(song)
+
+        if remover_acentos(song_data_artist_name.upper()).__contains__(remover_acentos(artist.upper())):
+            data_information['artist_name'] = song_data_artist_name
+            data_information['artist_id'] = song_data['result']['primary_artist']['id']
+
+            if remover_acentos(song_data_song_tile.upper()).__contains__(remover_acentos(song.upper())):
+                data_information['url'] = song_data['result']['url']
+                data_information['title'] = song_data_song_tile
+                data_information['lyrics_state'] = song_data_lyrics_state
+
+            if song_data_lyrics_state.upper() == 'COMPLETE':
+                break
+
+    return data_information
+
+
+def get_song_base_by_search(
+    song: str,
     artist: str,
     header: dict[str, str],
-    url_base:str = 'https://api.genius.com/',
+    url_base: str = 'https://api.genius.com/',
 ) -> tuple[str, dict[str, str]]:
-    search_artist_endpoint = f'search?q={artist.upper()}'
+    from json import loads
+
+    search_artist_endpoint = f'search?q="{song.upper()} {artist.upper()}"'
     url_search_artist = ''.join((url_base, search_artist_endpoint))
     base_data = loads(
         get(url=url_search_artist, headers=header).content
@@ -54,50 +97,11 @@ def get_artist_base_data(
     return base_data
 
 
-def get_song_details(
-    song: str,
-    song_data_list: list[dict[str, str]],
-):    
-    selected_data_information = {
-        'artist_name': '',
-        'artist_id': '',
-        'full_title': '',
-        'url': ''
-    }
-
-    for song_data in song_data_list:
-        try:
-            full_title = remover_acentos(
-                song_data['result']['full_title']
-            )
-
-            if (
-                full_title.upper().__contains__(
-                    remover_acentos(song).upper()
-                )
-            ):
-                selected_data_information['title'] = full_title
-                selected_data_information['url'] = song_data[
-                    'result'
-                ]['url']
-                selected_data_information['artist_name'] = song_data[
-                    'result'
-                ]['primary_artist']['name']
-                selected_data_information['artist_id'] = song_data[
-                    'result'
-                ]['primary_artist']['id']
-                selected_data_information['full_title'] = full_title
-
-                break
-        except:
-            ...
-
-    return selected_data_information
-
-
 def extract_lyrics_content(
-    selected_data_information: dict[str, str],
+    data_information: dict[str, str],
 ) -> list[str]:
+    from bs4 import BeautifulSoup
+
     headers = {
         "User-Agent": (
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -105,7 +109,8 @@ def extract_lyrics_content(
             'Chrome/119.0.0.0 Safari/537.36'
         )
     }
-    url = selected_data_information['url']
+
+    url = data_information['url']
 
     response = get(url, headers = headers)
     response.raise_for_status()
@@ -116,53 +121,102 @@ def extract_lyrics_content(
     )
 
     lyrics_content: list[str] = []
+
+    lyrics_content: list[str] = []
     for index_div in range(len(lyrics_divs)):
-        lyrics_content = [
-            str(item.text).strip()
-            for item in lyrics_divs[index_div].children
-                if (not str(item.text) == '')
-        ]
+        for item in lyrics_divs[index_div].children:
+            line_temp = []
+            if (str(item).__contains__('<br/>')):
+                line_temp += [
+                    items.strip()
+                    for items in item.strings
+                ]
+            elif (not str(item.text) == ''):
+                line_temp.append(str(item.text).strip())
+            else:
+                line_temp.append('BLANKLINESTAG')
+        
+            # print(line_temp)
+            lyrics_content += [
+                line
+                for line in line_temp
+            ]
+
+    # breakpoint()
+    lyrics_content_temp = []
+    for item in lyrics_content:
+        line_temp = ''
+        if (not item == 'BLANKLINESTAG'):
+            line_temp = str(item).strip()
+            lyrics_content_temp.append(line_temp)
+            
+    lyrics_content = lyrics_content_temp
 
     return lyrics_content
 
 
 def search_lyrics(artist: str, song: str,):
+    data_information = {
+        'artist_name': '',
+        'artist_id': '',
+        'title': '',
+        'url': '',
+        'lyrics_state': ''
+    }
+
     header_api = get_api_auth_bearer()
 
-    base_data = get_artist_base_data(artist, header_api)
+    song_base_data = get_song_base_by_search(song, artist, header_api)
 
-    song_data_list = base_data['response']['hits']
+    if song_base_data['response']['hits'] == []:
+        raise SystemError(
+            'Há algo de errado com a busca, verifique a ortografia.'
+        )
 
-    selected_data_information = get_song_details(
-        song,
+    song_data_list = song_base_data['response']['hits']
+
+    data_information = get_artist_by_song_base_data(
         song_data_list,
+        artist,
+        song,
+        data_information,
     )
 
-    if selected_data_information['full_title'] == '':
+    if data_information['artist_name'] == '':
+        raise SystemError(
+            'Não foi possível localizar o artista solicitado.'
+        )
+
+    if data_information['title'] == '':
         raise SystemError(
             'Não foi possível localizar a música solicitada.'
         )
 
-    lyrics_content = extract_lyrics_content(selected_data_information)
+    lyrics_content = extract_lyrics_content(data_information)
 
     cls()
 
     show_lyrics_details(
-        selected_data_information,
+        data_information,
         lyrics_content
     )
 
 
 def show_lyrics_details(
-    selected_data_information: dict[str, str],
+    data_information: dict[str, str],
     lyrics_content: list[str],
 ):
     song_metadata = {
-        'artist_name': selected_data_information['artist_name'],
-        'title': selected_data_information['title']
+        'artist_name': data_information['artist_name'],
+        'title': data_information['title'],
+        'url': data_information['url'],
+        'lyrics_state': data_information['lyrics_state'],
     }
 
     print('Artist:', song_metadata['artist_name'])
-    print('Title:', song_metadata['title'], '\n')
+    print('Title:', song_metadata['title'])
+    print('Webpage Lyrics URL:', song_metadata['url'])
+    print('Lyrics Status:', song_metadata['lyrics_state'], '\n')
+
     [print(item) for item in lyrics_content]
     print('\n')
