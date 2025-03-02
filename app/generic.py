@@ -65,7 +65,7 @@ def get_artist_by_song_base_data(
 
             if remover_acentos(song_data_song_tile.upper()).__contains__(remover_acentos(song.upper())):
                 data_information['url'] = song_data['result']['url']
-                data_information['title'] = song_data_song_tile
+                data_information['title'] = song_data['result']['title']
                 data_information['lyrics_state'] = song_data_lyrics_state
 
             if song_data_lyrics_state.upper() == 'COMPLETE':
@@ -121,8 +121,6 @@ def extract_lyrics_content(
     )
 
     lyrics_content: list[str] = []
-
-    lyrics_content: list[str] = []
     for index_div in range(len(lyrics_divs)):
         for item in lyrics_divs[index_div].children:
             line_temp = []
@@ -136,13 +134,11 @@ def extract_lyrics_content(
             else:
                 line_temp.append('BLANKLINESTAG')
         
-            # print(line_temp)
             lyrics_content += [
                 line
                 for line in line_temp
             ]
 
-    # breakpoint()
     lyrics_content_temp = []
     for item in lyrics_content:
         line_temp = ''
