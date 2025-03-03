@@ -1,5 +1,5 @@
 from app.generic import search_lyrics
-from py_rpautom.python_utils import cls
+from py_rpautom.python_utils import cls, abrir_arquivo_texto
 
 
 cls()
@@ -21,7 +21,18 @@ song = 'You\'re beautiful'
 # song = 'quebre as correntes'
 # song = 'pólo'
 
-try:
-    search_lyrics(artist, song)
-except Exception as error:
-    print(error.args[0], '\n')
+def start_lyrics(artist, song):
+    try:
+        search_lyrics(artist, song)
+    except Exception as error:
+        print(error.args[0], '\n')
+
+tracklist_content = abrir_arquivo_texto(
+    caminho='./data/tracklist.txt', encoding='utf8'
+).splitlines()
+
+for track in tracklist_content[1:]:
+    track_number, song_title, artist_name = track.split(';')
+
+    start_lyrics(artist_name, song_title)
+    input('Pressione Enter para continuar...')
