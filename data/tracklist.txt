@@ -1,0 +1,15 @@
+track number;song title;artist name
+1;Oxygen;Colbie Caillat
+2;The Little Things;Colbie Caillat
+3;One Fine Wire;Colbie Caillat
+4;Bubbly;Colbie Caillat
+5;Feelings Show;Colbie Caillat
+6;Midnight Bottle;Colbie Caillat
+7;Realize;Colbie Caillat
+8;Battle;Colbie Caillat
+9;Tailor Made;Colbie Caillat
+10;Magic;Colbie Caillat
+11;Tied Down;Colbie Caillat
+12;Capri;Colbie Caillat
+13;Older;Colbie Caillat
+14;Dreams Collide;Colbie Caillat
