@@ -27,6 +27,20 @@ def clean_data(data: str) -> str:
     data_cleaned = pattern.sub('', data)
     return data_cleaned
 
+
+def format_lyrics_content(lyrics_content: list[str],):
+    new_lyrics_content = []
+
+    for lyrics_content_count, line in enumerate(lyrics_content):
+        if lyrics_content[lyrics_content_count].startswith('(') \
+        or lyrics_content[lyrics_content_count].startswith('['):
+            new_lyrics_content.append('')
+
+        new_lyrics_content.append(line)
+
+    return new_lyrics_content
+
+
 def get_api_auth_bearer(
     env_var_name: str = 'LYRICS_APP_CLIENT_BEARER',
 ) -> dict[str, str]:
@@ -213,6 +227,7 @@ def show_lyrics_details(
     print('Title:', song_metadata['title'])
     print('Webpage Lyrics URL:', song_metadata['url'])
     print('Lyrics Status:', song_metadata['lyrics_state'], '\n')
+    lyrics_content = format_lyrics_content(lyrics_content = lyrics_content)
 
     [print(item) for item in lyrics_content]
     print('\n')
